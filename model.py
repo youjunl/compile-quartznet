@@ -725,8 +725,8 @@ class Model(nn.Module):
     t_995 = F.relu(t_1275)
     t_996 = self.n_Conv_263(t_995)
     t_997 = t_996.permute(*[0, 2, 1])
-    logprobs = F.log_softmax(t_997, **{'dim': 2})
-    return logprobs
+    probs = F.softmax(t_997, **{'dim': 2})
+    return torch.log(probs)
 
   def compatible_auto_pad(self, input, kernel_spatial_shape, nn_mod, auto_pad=None, **kwargs):
     input_spatial_shape = input.shape[2:]

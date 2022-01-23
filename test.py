@@ -1,6 +1,6 @@
-from onnx_pytorch import code_gen
-path = "C:\\Users\\LuoYJ\\Documents\\GitHub\\Adaptiv\\Quartznet\\onnx_quartznet.onnx"
-code_gen.gen(path, "./")
+# from onnx_pytorch import code_gen
+path = "/home/youjun/Documents/Adaptiv/Quartznet/onnx_quartznet.onnx"
+# code_gen.gen(path, "./")
 
 import numpy as np
 import onnx
@@ -12,7 +12,7 @@ from model import Model
 
 model = Model()
 model.eval()
-inp = np.random.randn(128, 64, 256).astype(np.float32)
+inp = np.random.randn(32, 64, 256).astype(np.float32)
 with torch.no_grad():
   torch_outputs = model(torch.from_numpy(inp))
 
