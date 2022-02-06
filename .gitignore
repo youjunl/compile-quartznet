@@ -1,3 +1,4 @@
 val
 *.pth
+__pycache__
 quantize_result
