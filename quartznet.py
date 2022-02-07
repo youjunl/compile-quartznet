@@ -21,11 +21,11 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument(
     '--data_dir',
-    default="/path/to/manifest_json/",
+    default="val/dev_other.json",
     help='Data set directory, when quant_mode=calib, it is for calibration, while quant_mode=test it is for evaluation')
 parser.add_argument(
     '--model_dir',
-    default="/path/to/trained_pth_model/",
+    default="quartznet.pth",
     help='Trained model file path.'
 )
 parser.add_argument(
@@ -898,13 +898,14 @@ def quantization(title='optimize',
 
 if __name__ == '__main__':
   model = Model()
-  input = torch.randn([args.batch_size, 64, 256])
+  input = torch.randn([args.batch_size, 64, 4000])
   scripted_model = torch.jit.trace(model, input).eval()
   quant_mode = args.quant_mode
   deploy = args.deploy
   quantizer = torch_quantizer(quant_mode, model, (input))
   quant_model = quantizer.quant_model
   acc, wer = evaluate(quant_model, args.data_dir)
+  print('wer:', wer)
   if quant_mode == 'calib':
     quantizer.export_quant_config()
   if deploy:
