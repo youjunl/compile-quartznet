@@ -1,5 +1,4 @@
 import numpy as np
-import onnx
 import onnxruntime
 import torch
 from utils.common import post_process_predictions, post_process_transcripts, word_error_rate, to_numpy
@@ -82,17 +81,17 @@ def ref(model_path, val_data):
   return greedy_hypotheses
 
 if __name__ == '__main__':
-  data = '../Adaptiv/Quartznet/val/test_sample.json'
+  data = 'sample.json'
   torch_model = Model()
   torch_outputs = test(torch_model, data)
 
-  onnx_model = "../Adaptiv/Quartznet/onnx_quartznet.onnx"
-  ort_outputs = ref(onnx_model, data)
+  # onnx_model = "../Adaptiv/Quartznet/onnx_quartznet.onnx"
+  # ort_outputs = ref(onnx_model, data)
 
   print("torch")
   print(torch_outputs)
-  print("onnx")
-  print(ort_outputs)
+  # print("onnx")
+  # print(ort_outputs)
 
   # print(
   #     "Comparison result:",

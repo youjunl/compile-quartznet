@@ -446,7 +446,7 @@ class Model(nn.Module):
     self.n_Conv_255 = nn.Conv2d(**{'groups': 1, 'dilation': [1,0], 'out_channels': 512, 'padding': [0,0], 'kernel_size': (1,1), 'stride': [1,1], 'in_channels': 512, 'bias': True})
     self.n_Conv_255.weight.data = self._vars["t_1270"]
     self.n_Conv_255.bias.data = self._vars["t_1271"].squeeze(-1)
-    self.n_Conv_258 = nn.Conv2d(**{'groups': 512, 'dilation': [2], 'out_channels': 512, 'padding': [86,0], 'kernel_size': (87,1), 'stride': [1,1], 'in_channels': 512, 'bias': False})
+    self.n_Conv_258 = nn.Conv2d(**{'groups': 512, 'dilation': 2, 'out_channels': 512, 'padding': [86,0], 'kernel_size': (87,1), 'stride': [1,1], 'in_channels': 512, 'bias': False})
     self.n_Conv_258.weight.data = self._vars["encoder_encoder_16_mconv_0_conv_weight"]
     self.n_Conv_259 = nn.Conv2d(**{'groups': 1, 'dilation': [1,0], 'out_channels': 512, 'padding': [0,0], 'kernel_size': (1,1), 'stride': [1,1], 'in_channels': 512, 'bias': True})
     self.n_Conv_259.weight.data = self._vars["t_1273"]
@@ -727,8 +727,9 @@ class Model(nn.Module):
     t_996 = self.n_Conv_263(t_995)
     t_996 = t_996.squeeze(-1)
     t_997 = t_996.permute(*[0, 2, 1])
-    probs = F.softmax(t_997, **{'dim': 2})
-    return torch.log(probs)
+    # Vitis ai doesnot allow numeric caculation in graph
+    #probs = torch.log(F.softmax(t_997, **{'dim': 2}))
+    return t_997
 
   def compatible_auto_pad(self, input, kernel_spatial_shape, nn_mod, auto_pad=None, **kwargs):
     input_spatial_shape = input.shape[2:]
