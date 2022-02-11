@@ -71,10 +71,10 @@ if __name__ == '__main__':
     print(torch_outputs)
     print(quant_model)
   
-    if quant_mode == 'calib':  
-        quantizer.export_quant_config()
-    elif quant_mode == 'test':
-        temp = quant_model(calib_data)
-        quantizer.export_xmodel(deploy_check=True)
+    
+    quantizer.export_quant_config()
+    
+    temp = quant_model(calib_data)
+    quantizer.export_xmodel(deploy_check=False)
 
 # vai_c_xir -x ./quantize_result/Model_int.xmodel -a /opt/vitis_ai/compiler/arch/DPUCZDX8G/KV260/arch.json -n quartznet
