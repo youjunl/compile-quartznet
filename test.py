@@ -29,7 +29,6 @@ def test(model, val_data):
 
     # Get 64d MFCC features and accumulate time
     processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
-
     # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
     ologits = model(processed_signal)
     alogits = np.asarray(ologits)
@@ -64,6 +63,7 @@ def ref(model_path, val_data):
 
     # Get 64d MFCC features and accumulate time
     processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
+
     # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
     inputs = {session.get_inputs()[0].name: to_numpy(processed_signal),}
     ologits = session.run(None, inputs)

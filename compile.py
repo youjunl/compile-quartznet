@@ -4,12 +4,12 @@ import time
 from utils.common import post_process_predictions, post_process_transcripts, word_error_rate, to_numpy
 from utils.audio_preprocessing import AudioToMelSpectrogramPreprocessor
 from utils.data_layer import AudioToTextDataLayer
-from model import Model
+from model_ft import Model
 from pytorch_nndct.apis import torch_quantizer, dump_xmodel
 vocab = [" ", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
     "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "'"]
 device = torch.device("cpu")
-randinput = torch.from_numpy(np.random.randn(1, 64, 256).astype(np.float32))
+randinput = torch.from_numpy(np.random.randn(1, 64, 4000, 1).astype(np.float32))
 @torch.no_grad()
 def evaluate(model, val_data):
   model.eval()
@@ -30,9 +30,7 @@ def evaluate(model, val_data):
 
     # Get 64d MFCC features and accumulate time
     processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
-    processed_signal = processed_signal[:, :, :4000]
-    print('features data')
-    print(processed_signal)
+
     # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
     t_997 = model(processed_signal)
     probs = torch.softmax(t_997, **{'dim': 2})
@@ -49,6 +47,7 @@ def evaluate(model, val_data):
     transcripts_len.append(transcript_len_e1)
   greedy_hypotheses = post_process_predictions(predictions, vocab)
   return greedy_hypotheses
+
 
 if __name__ == '__main__':
     quant_mode = 'test'
@@ -76,4 +75,6 @@ if __name__ == '__main__':
         quantizer.export_quant_config()
     elif quant_mode == 'test':
         temp = quant_model(calib_data)
-        quantizer.export_xmodel(deploy_check=False)
+        quantizer.export_xmodel(deploy_check=True)
+
+# vai_c_xir -x ./quantize_result/Model_int.xmodel -a /opt/vitis_ai/compiler/arch/DPUCZDX8G/KV260/arch.json -n quartznet
