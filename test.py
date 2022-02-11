@@ -1,5 +1,5 @@
 import numpy as np
-import onnxruntime
+#import onnxruntime
 import torch
 from utils.common import post_process_predictions, post_process_transcripts, word_error_rate, to_numpy
 from utils.audio_preprocessing import AudioToMelSpectrogramPreprocessor

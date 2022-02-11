@@ -19,7 +19,7 @@ def evaluate(model, val_data):
       labels=vocab,
       batch_size=1,
       shuffle=False,
-      drop_last=True)
+      drop_last=False)
   preprocessor = AudioToMelSpectrogramPreprocessor(sample_rate=16000) 
   predictions = []
   transcripts = []
@@ -30,7 +30,7 @@ def evaluate(model, val_data):
 
     # Get 64d MFCC features and accumulate time
     processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
-
+    print(processed_signal.size())
     # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
     t_997 = model(processed_signal)
     probs = torch.softmax(t_997, **{'dim': 2})
@@ -48,6 +48,28 @@ def evaluate(model, val_data):
   greedy_hypotheses = post_process_predictions(predictions, vocab)
   return greedy_hypotheses
 
+def calibration(quant_model, data):
+  data_layer = AudioToTextDataLayer(
+      manifest_filepath=data,
+      sample_rate=16000,
+      labels=vocab,
+      batch_size=1,
+      shuffle=False,
+      drop_last=True)
+  preprocessor = AudioToMelSpectrogramPreprocessor(sample_rate=16000) 
+  predictions = []
+  transcripts = []
+  transcripts_len = []
+  for i, test_batch in enumerate(data_layer.data_iterator):
+    print('data %d'%i)
+    # Get audio [1, n], audio length n, transcript and transcript length
+    audio_signal_e1, a_sig_length_e1, transcript_e1, transcript_len_e1 = test_batch
+
+    # Get 64d MFCC features and accumulate time
+    processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
+    tmp = quant_model(processed_signal)
+
+  return quant_model
 
 if __name__ == '__main__':
     quant_mode = 'test'
@@ -74,7 +96,10 @@ if __name__ == '__main__':
     
     quantizer.export_quant_config()
     
-    temp = quant_model(calib_data)
+    #calib
+    calib = 'val/dev_other.json'
+    print(calib_data)
+    quant_model = evaluate(quant_model, data)
     quantizer.export_xmodel(deploy_check=False)
 
 # vai_c_xir -x ./quantize_result/Model_int.xmodel -a /opt/vitis_ai/compiler/arch/DPUCZDX8G/KV260/arch.json -n quartznet
