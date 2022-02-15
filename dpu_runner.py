@@ -120,7 +120,7 @@ def run_quartznet(dpu: "Runner", data):
       job_id = dpu.execute_async(inputData, outputData)
       dpu.wait(job_id)
 
-      t_997 = torch.from_numpy(outputData)
+      t_997 = torch.Tensor(outputData)
       # t_997 = model(processed_signal)
       probs = torch.softmax(t_997, **{'dim': 2})
       ologits = torch.log(probs)
