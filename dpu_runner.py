@@ -82,6 +82,16 @@ def get_child_subgraph_dpu(graph: "Graph") -> List["Subgraph"]:
       if cs.has_attr("device") and cs.get_attr("device").upper() == "DPU"
   ]
 
+def execute_async(dpu, tensor_buffers_dict):
+    input_tensor_buffers = [
+        tensor_buffers_dict[t.name] for t in dpu.get_input_tensors()
+    ]
+    output_tensor_buffers = [
+        tensor_buffers_dict[t.name] for t in dpu.get_output_tensors()
+    ]
+    jid = dpu.execute_async(input_tensor_buffers, output_tensor_buffers)
+    return dpu.wait(jid)
+
 def run_quartznet(dpu: "Runner", data):
   # Load data
   data_layer = AudioToTextDataLayer(
@@ -166,7 +176,7 @@ if __name__ == '__main__':
   ''' get a list of subgraphs from the compiled model file '''
   g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
   subgraphs = g.get_root_subgraph().toposort_child_subgraph()
-  print('Total number of DPU subgraph: {}'.format(len(subgraphs)))
+  
 
   ''' get a list of dpu subgraphs from the compiled model file '''
   dpu_subgraphs = []
@@ -176,7 +186,8 @@ if __name__ == '__main__':
       dpu_subgraphs.append(subgraph)
     else:
       cpu_subgraphs.append(subgraph)
-
+  print('Total number of DPU subgraph: {}, DPU: {}, CPU: {}.'.format(len(subgraphs), len(dpu_subgraphs), len(cpu_subgraphs)))
+  
   time_start = time.time()  
   time_end = time.time()
   timetotal = time_end - time_start
