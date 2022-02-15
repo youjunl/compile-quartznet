@@ -123,6 +123,8 @@ def run_quartznet(dpu: "Runner", data):
       t_997 = torch.Tensor(outputData)
       # t_997 = model(processed_signal)
       probs = torch.softmax(t_997, **{'dim': 2})
+      print(probs)
+      print(probs.size())
       ologits = torch.log(probs)
       alogits = np.asarray(ologits)
       logits = torch.from_numpy(alogits[0])
