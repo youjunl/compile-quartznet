@@ -148,7 +148,7 @@ if __name__ == '__main__':
   data = 'sample.json'  
   g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
   subgraphs = get_child_subgraph_dpu(g)
-  print('Total number of DPU subgraph'%len(subgraphs))
+  print('Total number of DPU subgraph: {}'.format(len(subgraphs)))
   all_dpu_runners = []
   for i in range(int(threadnum)):
       all_dpu_runners.append(vart.Runner.create_runner(subgraphs[0], "run"))
@@ -160,6 +160,8 @@ if __name__ == '__main__':
             target=run_quartznet, args=(all_dpu_runners[i], img, cnt)
         )
         threadAll.append(t1)
+
+  time_start = time.time()  
   for x in threadAll:
       x.start()
   for x in threadAll:
