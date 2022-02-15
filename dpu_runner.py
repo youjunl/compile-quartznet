@@ -162,8 +162,10 @@ if __name__ == '__main__':
   timetotal = time_end - time_start
   print("TORCH Time cost: %ds" % timetotal)
   print('******************************************************************')
+  
+  ''' get a list of subgraphs from the compiled model file '''
   g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
-  subgraphs = get_child_subgraph_dpu(g)
+  subgraphs = g.get_root_subgraph().toposort_child_subgraph()
   print('Total number of DPU subgraph: {}'.format(len(subgraphs)))
   all_dpu_runners = []
   for i in range(int(threadnum)):
