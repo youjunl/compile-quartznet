@@ -1,15 +1,20 @@
+from pyexpat import model
 import numpy as np
 import torch
 import time
 from utils.common import post_process_predictions, post_process_transcripts, word_error_rate, to_numpy
 from utils.audio_preprocessing import AudioToMelSpectrogramPreprocessor
 from utils.data_layer import AudioToTextDataLayer
-from model_ft import Model
+from model import Model
+
 from pytorch_nndct.apis import torch_quantizer, dump_xmodel
+from pytorch_nndct import QatProcessor
+
+limit = 799
 vocab = [" ", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
     "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "'"]
 device = torch.device("cpu")
-randinput = torch.from_numpy(np.random.randn(1, 64, 4000, 1).astype(np.float32))
+randinput = torch.from_numpy(np.random.randn(1, 64, limit, 1).astype(np.float32))
 @torch.no_grad()
 def evaluate(model, val_data):
   model.eval()
@@ -30,9 +35,13 @@ def evaluate(model, val_data):
 
     # Get 64d MFCC features and accumulate time
     processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
+    processed_signal = processed_signal[:,:,:limit]
     print(processed_signal.size())
+    if a_sig_length_e1/16000 < 8:
+      continue
     # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
-    t_997 = model(processed_signal)
+    t_997 = model(processed_signal.unsqueeze(-1))
+    # t_997 = model(processed_signal)
     probs = torch.softmax(t_997, **{'dim': 2})
     ologits = torch.log(probs)
     alogits = np.asarray(ologits)
@@ -46,7 +55,10 @@ def evaluate(model, val_data):
     transcripts.append(transcript_e1)
     transcripts_len.append(transcript_len_e1)
   greedy_hypotheses = post_process_predictions(predictions, vocab)
-  return greedy_hypotheses
+  print(greedy_hypotheses)
+  references = post_process_transcripts(transcripts, transcripts_len, vocab)
+  wer = word_error_rate(hypotheses=greedy_hypotheses, references=references)
+  return 1-wer
 
 def calibration(quant_model, data):
   data_layer = AudioToTextDataLayer(
@@ -61,13 +73,14 @@ def calibration(quant_model, data):
   transcripts = []
   transcripts_len = []
   for i, test_batch in enumerate(data_layer.data_iterator):
-    print('data %d'%i)
     # Get audio [1, n], audio length n, transcript and transcript length
     audio_signal_e1, a_sig_length_e1, transcript_e1, transcript_len_e1 = test_batch
-
+    if a_sig_length_e1/16000 < 10:
+      continue
     # Get 64d MFCC features and accumulate time
     processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
-    tmp = quant_model(processed_signal)
+    processed_signal = processed_signal[:,:,:limit]
+    tmp = quant_model(processed_signal.unsqueeze(-1))
 
   return quant_model
 
@@ -79,27 +92,23 @@ if __name__ == '__main__':
     t = time.time()
     torch_outputs = evaluate(torch_model, data)
 
-    print("torch output: %d seconds"%(time.time()-t))
-    print(torch_outputs)
-
-
-    calib_data = torch.load('calib.pt')
+    calib_data = torch.load('calib.pt')[:,:,:limit].unsqueeze(-1)
+    print('Calib size{}'.format(calib_data.size()))
     # scripted_model = torch.jit.trace(torch_model, calib_data).eval()
-    quantizer = torch_quantizer(quant_mode, torch_model, (calib_data), device=device)
+    quantizer = torch_quantizer('calib', torch_model, (calib_data), device=device)
     quant_model = quantizer.quant_model
-    t = time.time()
+
     torch_outputs = evaluate(quant_model, data)
-    print("quant output: %d seconds"%(time.time()-t))
-    print(torch_outputs)
-    print(quant_model)
-  
-    
+
     quantizer.export_quant_config()
     
     #calib
+    quantizer = torch_quantizer('test', torch_model, (calib_data), device=device)
     calib = 'val/dev_other.json'
-    print(calib_data)
-    quant_model = evaluate(quant_model, data)
+    compile_model = quantizer.quant_model
+    compile_model = calibration(compile_model, data)
     quantizer.export_xmodel(deploy_check=False)
 
 # vai_c_xir -x ./quantize_result/Model_int.xmodel -a /opt/vitis_ai/compiler/arch/DPUCZDX8G/KV260/arch.json -n quartznet
+
+# [UNILOG][FATAL][XCOM_DATA_OUTRANGE][Data value is out of range!]

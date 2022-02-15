@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
   # onnx_model = "../Adaptiv/Quartznet/onnx_quartznet.onnx"
   # ort_outputs = ref(onnx_model, data)
-
+  print(torch_model(torch.from_numpy(np.random.randn(1, 64, 256).astype(np.float32))))
   print("torch")
   print(torch_outputs)
   # print("onnx")
