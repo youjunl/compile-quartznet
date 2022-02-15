@@ -1,0 +1,93 @@
+import numpy as np
+#import onnxruntime
+import torch
+from utils.common import post_process_predictions, post_process_transcripts, word_error_rate, to_numpy
+from utils.audio_preprocessing import AudioToMelSpectrogramPreprocessor
+from utils.data_layer import AudioToTextDataLayer
+from model import Model
+from ctypes import *
+from typing import List
+
+import vart
+import xir
+import math
+print('Finish import')
+limit = 799
+vocab = [" ", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+    "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "'"]
+device = torch.device("cpu")
+randinput = torch.from_numpy(np.random.randn(1, 64, 256).astype(np.float32))
+
+@torch.no_grad()
+def evaluate(model, val_data):
+    model.eval()
+    data_layer = AudioToTextDataLayer(
+      manifest_filepath=val_data,
+      sample_rate=16000,
+      labels=vocab,
+      batch_size=1,
+      shuffle=False,
+      drop_last=False)
+    preprocessor = AudioToMelSpectrogramPreprocessor(sample_rate=16000) 
+    predictions = []
+    transcripts = []
+    transcripts_len = []
+    for i, test_batch in enumerate(data_layer.data_iterator):
+        # Get audio [1, n], audio length n, transcript and transcript length
+        audio_signal_e1, a_sig_length_e1, transcript_e1, transcript_len_e1 = test_batch
+
+        # Get 64d MFCC features and accumulate time
+        processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
+        processed_signal = processed_signal[:,:,:limit]
+        print(processed_signal.size())
+        if a_sig_length_e1/16000 < 8:
+          continue
+        # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
+        t_997 = model(processed_signal.unsqueeze(-1))
+        # t_997 = model(processed_signal)
+        probs = torch.softmax(t_997, **{'dim': 2})
+        ologits = torch.log(probs)
+        alogits = np.asarray(ologits)
+        logits = torch.from_numpy(alogits[0])
+        predictions_e1 = logits.argmax(dim=-1, keepdim=False)
+        transcript_e1 = torch.from_numpy(np.asarray(test_batch[2])) 
+        transcript_len_e1 = torch.from_numpy(np.asarray(test_batch[1])) 
+
+        # Save results
+        predictions.append(torch.reshape(predictions_e1, (1, -1)))
+        transcripts.append(transcript_e1)
+        transcripts_len.append(transcript_len_e1)
+    greedy_hypotheses = post_process_predictions(predictions, vocab)
+    print(greedy_hypotheses)
+    references = post_process_transcripts(transcripts, transcripts_len, vocab)
+    wer = word_error_rate(hypotheses=greedy_hypotheses, references=references)
+    return greedy_hypotheses
+
+def get_child_subgraph_dpu(graph: "Graph") -> List["Subgraph"]:
+    assert graph is not None, "'graph' should not be None."
+    root_subgraph = graph.get_root_subgraph()
+    assert (
+        root_subgraph is not None
+    ), "Failed to get root subgraph of input Graph object."
+    if root_subgraph.is_leaf:
+        return []
+    child_subgraphs = root_subgraph.toposort_child_subgraph()
+    assert child_subgraphs is not None and len(child_subgraphs) > 0
+    return [
+        cs
+        for cs in child_subgraphs
+        if cs.has_attr("device") and cs.get_attr("device").upper() == "DPU"
+    ]
+
+if __name__ == '__main__':
+    data = 'sample.json'
+    
+    g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
+    subgraphs = get_child_subgraph_dpu(g)
+    print('Total number of DPU subgraph'%len(subgraphs))
+    all_dpu_runner = []
+    # torch_model = Model()
+    # torch_model.eval()
+    # torch_outputs = evaluate(torch_model, data)
+    # print("torch")
+    # print(torch_outputs)
