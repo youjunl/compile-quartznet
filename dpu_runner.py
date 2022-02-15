@@ -169,7 +169,5 @@ if __name__ == '__main__':
 
   del all_dpu_runners
   time_end = time.time()
-  total = cnt * int(threadnum)
   timetotal = time_end - time_start
-  fps = float(total / timetotal)
-  print("%.2f FPS" % fps)
+  print("Time cost: %d" % timetotal)
