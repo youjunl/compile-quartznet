@@ -147,45 +147,37 @@ if __name__ == '__main__':
 
   
 
-  global threadnum
-  threadnum = 1
-  threadAll = []
-  data = 'sample.json'  
+  # global threadnum
+  # threadnum = 1
+  # threadAll = []
+  # data = 'sample.json'  
 
 
-  print('Performing torch evaluation')
-  time_start = time.time()  
-  model = Model()
-  model.eval()
-  evaluate(model, data)
-  time_end = time.time()
-  timetotal = time_end - time_start
-  print("TORCH Time cost: %ds" % timetotal)
-  print('******************************************************************')
+  # print('Performing torch evaluation')
+  # time_start = time.time()  
+  # model = Model()
+  # model.eval()
+  # evaluate(model, data)
+  # time_end = time.time()
+  # timetotal = time_end - time_start
+  # print("TORCH Time cost: %ds" % timetotal)
+  # print('******************************************************************')
   
   ''' get a list of subgraphs from the compiled model file '''
   g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
   subgraphs = g.get_root_subgraph().toposort_child_subgraph()
   print('Total number of DPU subgraph: {}'.format(len(subgraphs)))
-  all_dpu_runners = []
-  for i in range(int(threadnum)):
-      all_dpu_runners.append(vart.Runner.create_runner(subgraphs[0], "run"))
-  input_fixpos = all_dpu_runners[0].get_input_tensors()[0].get_attr("fix_point")
-  input_scale = 2**input_fixpos
 
-  for i in range(int(threadnum)):
-        t1 = threading.Thread(
-            target=run_quartznet, args=(all_dpu_runners[i], data)
-        )
-        threadAll.append(t1)
+  ''' get a list of dpu subgraphs from the compiled model file '''
+  dpu_subgraphs = []
+  cpu_subgraphs = []
+  for subgraph in subgraphs:
+    if subgraph.has_attr("device") and subgraph.get_attr("device").upper() == "DPU":
+      dpu_subgraphs.append(subgraph)
+    else:
+      cpu_subgraphs.append(subgraph)
 
   time_start = time.time()  
-  for x in threadAll:
-      x.start()
-  for x in threadAll:
-      x.join()
-
-  del all_dpu_runners
   time_end = time.time()
   timetotal = time_end - time_start
   print("DPU Time cost: %ds" % timetotal)
