@@ -157,7 +157,7 @@ if __name__ == '__main__':
 
   for i in range(int(threadnum)):
         t1 = threading.Thread(
-            target=run_quartznet, args=(all_dpu_runners[i], img, cnt)
+            target=run_quartznet, args=(all_dpu_runners[i], data)
         )
         threadAll.append(t1)
 
