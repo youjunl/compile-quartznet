@@ -48,6 +48,8 @@ def evaluate(model, val_data):
       t_997 = model(processed_signal.unsqueeze(-1))
       # t_997 = model(processed_signal)
       probs = torch.softmax(t_997, **{'dim': 2})
+      print(probs)
+      print(probs.size())
       ologits = torch.log(probs)
       alogits = np.asarray(ologits)
       logits = torch.from_numpy(alogits[0])
@@ -144,10 +146,22 @@ def run_quartznet(dpu: "Runner", data):
 
 if __name__ == '__main__':
 
+  
+
   global threadnum
   threadnum = 1
   threadAll = []
   data = 'sample.json'  
+
+
+  print('Performing torch evaluation')
+  time_start = time.time()  
+  model = Model()
+  model.eval()
+  evaluate(model, data)
+  time_end = time.time()
+  timetotal = time_end - time_start
+  print('******************************************************************')
   g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
   subgraphs = get_child_subgraph_dpu(g)
   print('Total number of DPU subgraph: {}'.format(len(subgraphs)))
