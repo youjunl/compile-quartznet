@@ -41,7 +41,6 @@ def evaluate(model, val_data):
       # Get 64d MFCC features and accumulate time
       processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
       processed_signal = processed_signal[:,:,:limit]
-      print(processed_signal.size())
       if a_sig_length_e1/16000 < 8:
         continue
       # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
@@ -117,7 +116,7 @@ def run_quartznet(dpu: "Runner", data):
       # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
       inputData = processed_signal.unsqueeze(-1)
       inputData = inputData.detach().cpu().numpy()
-      outputData = [np.empty(shapeOut, dtype=np.int8, order="C")]
+      outputData = np.empty(shapeOut)
 
       job_id = dpu.execute_async(inputData, outputData)
       dpu.wait(job_id)
@@ -161,6 +160,7 @@ if __name__ == '__main__':
   evaluate(model, data)
   time_end = time.time()
   timetotal = time_end - time_start
+  print("TORCH Time cost: %d" % timetotal)
   print('******************************************************************')
   g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
   subgraphs = get_child_subgraph_dpu(g)
@@ -186,4 +186,4 @@ if __name__ == '__main__':
   del all_dpu_runners
   time_end = time.time()
   timetotal = time_end - time_start
-  print("Time cost: %d" % timetotal)
+  print("DPU Time cost: %d" % timetotal)
