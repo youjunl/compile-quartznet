@@ -103,8 +103,8 @@ def run_quartznet(dpu: "Runner", data):
   pre_output_size = int(outputTensors[0].get_data_size() / shapeIn[0])
   output_fixpos = outputTensors[0].get_attr("fix_point")
   output_scale = 1 / (2**output_fixpos)
-  count = 0
-
+  print('input {}'.format(shapeIn))
+  print('output {}'.format(shapeOut))
   for i, test_batch in enumerate(data_layer.data_iterator):
       # Get audio [1, n], audio length n, transcript and transcript length
       audio_signal_e1, a_sig_length_e1, transcript_e1, transcript_len_e1 = test_batch
@@ -116,7 +116,7 @@ def run_quartznet(dpu: "Runner", data):
       # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
       inputData = processed_signal.unsqueeze(-1)
       inputData = inputData.detach().cpu().numpy()
-      outputData = np.empty(shapeOut)
+      outputData = [np.empty(shapeOut, dtype=np.float32, order="C")]
 
       job_id = dpu.execute_async(inputData, outputData)
       dpu.wait(job_id)
@@ -160,7 +160,7 @@ if __name__ == '__main__':
   evaluate(model, data)
   time_end = time.time()
   timetotal = time_end - time_start
-  print("TORCH Time cost: %d" % timetotal)
+  print("TORCH Time cost: %ds" % timetotal)
   print('******************************************************************')
   g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
   subgraphs = get_child_subgraph_dpu(g)
@@ -186,4 +186,4 @@ if __name__ == '__main__':
   del all_dpu_runners
   time_end = time.time()
   timetotal = time_end - time_start
-  print("DPU Time cost: %d" % timetotal)
+  print("DPU Time cost: %ds" % timetotal)
