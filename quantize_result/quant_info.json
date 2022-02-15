@@ -317,7 +317,7 @@
     "Model::Model/Conv2d[n_Conv_63]/input.40":[8,6],
     "Model::Model/input.41":[8,6],
     "Model::Model/Conv2d[n_Conv_66]/input.42":[8,6],
-    "Model::Model/Conv2d[n_Conv_67]/9433":[8,6],
+    "Model::Model/Conv2d[n_Conv_67]/9433":[8,7],
     "Model::Model/Conv2d[n_Conv_68]/9452":[8,6],
     "Model::Model/input.43":[8,6],
     "Model::Model/Conv2d[n_Conv_71]/input.44":[8,7],

@@ -10,7 +10,7 @@ from model import Model
 from pytorch_nndct.apis import torch_quantizer, dump_xmodel
 from pytorch_nndct import QatProcessor
 
-limit = 799
+limit = 800
 vocab = [" ", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
     "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "'"]
 device = torch.device("cpu")
