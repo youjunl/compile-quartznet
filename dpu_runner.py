@@ -144,7 +144,7 @@ if __name__ == '__main__':
 
   global threadnum
   threadnum = 1
-  
+  threadAll = []
   data = 'sample.json'  
   g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
   subgraphs = get_child_subgraph_dpu(g)
