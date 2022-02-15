@@ -14,7 +14,7 @@ import threading
 import math
 import time
 print('Finish import')
-limit = 799
+limit = 800
 vocab = [" ", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
     "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "'"]
 device = torch.device("cpu")
