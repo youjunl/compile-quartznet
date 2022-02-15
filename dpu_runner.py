@@ -116,7 +116,7 @@ def run_quartznet(dpu: "Runner", data):
       # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
       inputData = processed_signal.unsqueeze(-1)
       inputData = inputData.detach().cpu().numpy()
-      outputData = [np.empty(shapeOut, dtype=np.float32, order="C")]
+      outputData = [np.empty(shapeOut, dtype=np.int8, order="C")]
 
       job_id = dpu.execute_async(inputData, outputData)
       dpu.wait(job_id)

@@ -86,7 +86,7 @@ def calibration(quant_model, data):
 
 if __name__ == '__main__':
     quant_mode = 'test'
-    data = 'sample.json'
+    data = 'sample_vai.json'
     torch_model = Model()
     torch_model.eval()
     t = time.time()

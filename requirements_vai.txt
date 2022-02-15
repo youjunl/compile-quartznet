@@ -1,0 +1,7 @@
+inflect
+librosa==0.8.1
+torch==1.7.1
+numpy
+torch_stft
+unidecode
+torchvision
