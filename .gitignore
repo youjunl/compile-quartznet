@@ -2,3 +2,5 @@ val
 *.pth
 __pycache__
 *.xmodel
+.vscode
+.pkl_memoize_py3

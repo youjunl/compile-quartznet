@@ -1,19 +1,18 @@
 import numpy as np
-#import onnxruntime
 import torch
-from utils.common import post_process_predictions, post_process_transcripts, word_error_rate, to_numpy
+from utils.common import post_process_predictions, post_process_transcripts, word_error_rate, ctc_decoder
 from utils.audio_preprocessing import AudioToMelSpectrogramPreprocessor
 from utils.data_layer import AudioToTextDataLayer
-from model import Model
+# from model import Model
 from ctypes import *
 from typing import List
 
 print('Numpy: %s \nPytorch: %s'%(np.__version__, torch.__version__))
-
+import vitis_ai_library
 import vart
 import xir
-import threading
-import math
+# import threading
+# import math
 import time
 print('Finish import')
 limit = 800
@@ -67,32 +66,6 @@ def evaluate(model, val_data):
   references = post_process_transcripts(transcripts, transcripts_len, vocab)
   wer = word_error_rate(hypotheses=greedy_hypotheses, references=references)
   return greedy_hypotheses
-
-def get_child_subgraph_dpu(graph: "Graph") -> List["Subgraph"]:
-  assert graph is not None, "'graph' should not be None."
-  root_subgraph = graph.get_root_subgraph()
-  assert (
-      root_subgraph is not None
-  ), "Failed to get root subgraph of input Graph object."
-  if root_subgraph.is_leaf:
-      return []
-  child_subgraphs = root_subgraph.toposort_child_subgraph()
-  assert child_subgraphs is not None and len(child_subgraphs) > 0
-  return [
-      cs
-      for cs in child_subgraphs
-      if cs.has_attr("device") and cs.get_attr("device").upper() == "DPU"
-  ]
-
-def execute_async(dpu, tensor_buffers_dict):
-    input_tensor_buffers = [
-        tensor_buffers_dict[t.name] for t in dpu.get_input_tensors()
-    ]
-    output_tensor_buffers = [
-        tensor_buffers_dict[t.name] for t in dpu.get_output_tensors()
-    ]
-    jid = dpu.execute_async(input_tensor_buffers, output_tensor_buffers)
-    return dpu.wait(jid)
 
 def run_quartznet(dpu: "Runner", data):
   # Load data
@@ -149,7 +122,6 @@ if __name__ == '__main__':
   # threadAll = []
   # data = 'sample.json'  
 
-
   # print('Performing torch evaluation')
   # time_start = time.time()  
   # model = Model()
@@ -158,42 +130,31 @@ if __name__ == '__main__':
   # time_end = time.time()
   # timetotal = time_end - time_start
   # print("TORCH Time cost: %ds" % timetotal)
-  # print('******************************************************************')
+  print('******************************************************************')
   calib_data = torch.load('calib.pt')
+  print("calib data")
+  print(calib_data)
   calib_data = calib_data[:,:,:limit].unsqueeze(-1)
   inputData = calib_data.detach().cpu().numpy()
-  ''' get a list of subgraphs from the compiled model file '''
+  # ''' get a list of subgraphs from the compiled model file '''
   g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
-  subgraphs = g.get_root_subgraph().toposort_child_subgraph()
+  runner = vitis_ai_library.GraphRunner.create_graph_runner(g)
+  predictions = []
+  input_tensor_buffers = inputData
+  output_tensor_buffers = runner.get_outputs()
+  time_start = time.time()
+  v = runner.execute_async(input_tensor_buffers, output_tensor_buffers)
+  runner.wait(v)
+  output_data = np.asarray(output_tensor_buffers[0]).astype(np.float32)
+  probs = torch.softmax(torch.Tensor(output_data), **{'dim': 2})
+  logits = torch.log(probs)[0]
+  prediction = logits.argmax(dim=-1, keepdim=False)
+  predictions.append(prediction)
+  greedy_hypotheses = ctc_decoder(prediction, vocab) # [400, n]
   
-  ''' get a list of dpu subgraphs from the compiled model file '''
-  dpu_subgraphs = []
-  cpu_subgraphs = []
-  for subgraph in subgraphs:
-    tempDpu = vart.Runner.create_runner(subgraph, "run")
-    inputTensors = tempDpu.get_input_tensors()
-    outputTensors = tempDpu.get_output_tensors()
-    shapeIn = tuple(inputTensors[0].dims)
-    shapeOut = tuple(outputTensors[0].dims)
-    
-    outputData = [np.empty(shapeOut, dtype=np.int8, order="C")]
-    pre_output_size = int(outputTensors[0].get_data_size() / shapeIn[0])
-    output_fixpos = outputTensors[0].get_attr("fix_point")
-    output_scale = 1 / (2**output_fixpos)
-    job_id = tempDpu.execute_async(inputData, outputData)
-    tempDpu.wait(job_id)
-    inputData = outputData
-    print('input {}'.format(shapeIn))
-    print('output {}'.format(shapeOut))
-    if subgraph.has_attr("device") and subgraph.get_attr("device").upper() == "DPU":
-      dpu_subgraphs.append(subgraph)
-      print("DPU")
-    else:
-      cpu_subgraphs.append(subgraph)
-      print("CPU")
-  print('Total number of DPU subgraph: {}, DPU: {}, CPU: {}.'.format(len(subgraphs), len(dpu_subgraphs), len(cpu_subgraphs)))
-  time_start = time.time()  
-  run_quartznet()
+  print("model output")
+  print(output_data)
+  print(type(output_data))
   time_end = time.time()
   timetotal = time_end - time_start
   print("DPU Time cost: %ds" % timetotal)

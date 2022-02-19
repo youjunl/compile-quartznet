@@ -257,3 +257,25 @@ def to_numpy(tensor):
 #         num_workers=config.get('num_workers', 0),
 #         pin_memory=config.get('pin_memory', False),
 #     )
+
+def ctc_decoder(tensor, labels):
+    """
+    Decodes a sequence of labels to words
+    """
+    blank_id = len(labels)
+    labels_map = dict([(i, labels[i]) for i in range(len(labels))])
+    prediction_cpu_tensor = tensor.long().cpu()
+    # iterate over batch
+
+    # print(prediction)
+    prediction = prediction_cpu_tensor.numpy().tolist()
+    # CTC decoding procedure
+    decoded_prediction = []
+    previous = len(labels)  # id of a blank symbol
+    for p in prediction:
+        if (p != previous or previous == blank_id) and p != blank_id:
+            decoded_prediction.append(p)
+        previous = p
+    hypothesis = ''.join([labels_map[c] for c in decoded_prediction])
+
+    return hypothesis

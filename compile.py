@@ -60,7 +60,8 @@ def evaluate(model, val_data):
   wer = word_error_rate(hypotheses=greedy_hypotheses, references=references)
   return 1-wer
 
-def calibration(quant_model, data):
+def calibration(quant_model, data, maxNum):
+  num = 0
   data_layer = AudioToTextDataLayer(
       manifest_filepath=data,
       sample_rate=16000,
@@ -75,13 +76,16 @@ def calibration(quant_model, data):
   for i, test_batch in enumerate(data_layer.data_iterator):
     # Get audio [1, n], audio length n, transcript and transcript length
     audio_signal_e1, a_sig_length_e1, transcript_e1, transcript_len_e1 = test_batch
-    if a_sig_length_e1/16000 < 10:
+    if a_sig_length_e1/16000 < 8:
       continue
+    if num>maxNum:
+      return quant_model
+    else:
+      num = num+1
     # Get 64d MFCC features and accumulate time
     processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
     processed_signal = processed_signal[:,:,:limit]
-    tmp = quant_model(processed_signal.unsqueeze(-1))
-
+    quant_model(processed_signal.unsqueeze(-1))
   return quant_model
 
 if __name__ == '__main__':
@@ -93,21 +97,21 @@ if __name__ == '__main__':
     t = time.time()
     torch_outputs = evaluate(torch_model, data)
 
-    calib_data = torch.load('calib.pt')[:,:,:limit].unsqueeze(-1)
-    print('Calib size{}'.format(calib_data.size()))
+    # calib_data = torch.load('calib.pt')[:,:,:limit].unsqueeze(-1)
+    # print('Calib size{}'.format(calib_data.size()))
+    input_data = torch.Tensor(1, 64, limit).unsqueeze(-1)
     # scripted_model = torch.jit.trace(torch_model, calib_data).eval()
-    quantizer = torch_quantizer('calib', torch_model, (calib_data), device=device)
+    quantizer = torch_quantizer('calib', torch_model, (input_data), device=device)
     quant_model = quantizer.quant_model
 
-    torch_outputs = evaluate(quant_model, data)
-
+    quant_model = calibration(quant_model, data, 200)
     quantizer.export_quant_config()
     
     #calib
-    quantizer = torch_quantizer('test', torch_model, (calib_data), device=device)
+    quantizer = torch_quantizer('test', torch_model, (input_data), device=device)
     calib = 'val/dev_other.json'
     compile_model = quantizer.quant_model
-    compile_model = calibration(compile_model, data)
+    compile_model = calibration(compile_model, data, 200)
     quantizer.export_xmodel(deploy_check=False)
 
 # vai_c_xir -x ./quantize_result/Model_int.xmodel -a /opt/vitis_ai/compiler/arch/DPUCZDX8G/KV260/arch.json -n quartznet
