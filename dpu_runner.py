@@ -171,10 +171,10 @@ if __name__ == '__main__':
   for subgraph in subgraphs:
     if subgraph.has_attr("device") and subgraph.get_attr("device").upper() == "DPU":
       dpu_subgraphs.append(subgraph)
-      print("DPU: %s"%subgraph.get_attr("name"))
+      print("DPU: %s"%subgraph["name"])
     else:
       cpu_subgraphs.append(subgraph)
-      print("CPU: %s"%subgraph.get_attr("name"))
+      print("CPU: %s"%subgraph["name"])
   print('Total number of DPU subgraph: {}, DPU: {}, CPU: {}.'.format(len(subgraphs), len(dpu_subgraphs), len(cpu_subgraphs)))
   time_start = time.time()  
 
