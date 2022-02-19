@@ -170,7 +170,7 @@ if __name__ == '__main__':
   dpu_subgraphs = []
   cpu_subgraphs = []
   for subgraph in subgraphs:
-    tempDpu = vart.Runner.create_runner(subgraphs, "run")
+    tempDpu = vart.Runner.create_runner(subgraph, "run")
     inputTensors = tempDpu.get_input_tensors()
     outputTensors = tempDpu.get_output_tensors()
     shapeIn = tuple(inputTensors[0].dims)
