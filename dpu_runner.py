@@ -8,6 +8,8 @@ from model import Model
 from ctypes import *
 from typing import List
 
+print('Numpy: %s \nPytorch: %s'%(np.__version__, torch.__version__))
+
 import vart
 import xir
 import threading
