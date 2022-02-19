@@ -159,16 +159,31 @@ if __name__ == '__main__':
   # timetotal = time_end - time_start
   # print("TORCH Time cost: %ds" % timetotal)
   # print('******************************************************************')
-  
+  calib_data = torch.load('calib.pt')
+  calib_data = calib_data[:,:,:limit].unsqueeze(-1)
+  inputData = calib_data.detach().cpu().numpy()
   ''' get a list of subgraphs from the compiled model file '''
   g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
   subgraphs = g.get_root_subgraph().toposort_child_subgraph()
   
-
   ''' get a list of dpu subgraphs from the compiled model file '''
   dpu_subgraphs = []
   cpu_subgraphs = []
   for subgraph in subgraphs:
+    inputTensors = subgraphs.get_input_tensors()
+    outputTensors = subgraphs.get_output_tensors()
+    shapeIn = tuple(inputTensors[0].dims)
+    shapeOut = tuple(outputTensors[0].dims)
+    
+    outputData = [np.empty(shapeOut, dtype=np.int8, order="C")]
+    pre_output_size = int(outputTensors[0].get_data_size() / shapeIn[0])
+    output_fixpos = outputTensors[0].get_attr("fix_point")
+    output_scale = 1 / (2**output_fixpos)
+    job_id = subgraphs.execute_async(inputData, outputData)
+    subgraphs.wait(job_id)
+    inputData = outputData
+    print('input {}'.format(shapeIn))
+    print('output {}'.format(shapeOut))
     if subgraph.has_attr("device") and subgraph.get_attr("device").upper() == "DPU":
       dpu_subgraphs.append(subgraph)
       print("DPU")
@@ -177,7 +192,7 @@ if __name__ == '__main__':
       print("CPU")
   print('Total number of DPU subgraph: {}, DPU: {}, CPU: {}.'.format(len(subgraphs), len(dpu_subgraphs), len(cpu_subgraphs)))
   time_start = time.time()  
-
+  run_quartznet()
   time_end = time.time()
   timetotal = time_end - time_start
   print("DPU Time cost: %ds" % timetotal)
