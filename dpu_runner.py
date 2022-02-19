@@ -170,8 +170,9 @@ if __name__ == '__main__':
   dpu_subgraphs = []
   cpu_subgraphs = []
   for subgraph in subgraphs:
-    inputTensors = subgraphs.get_input_tensors()
-    outputTensors = subgraphs.get_output_tensors()
+    tempDpu = vart.Runner.create_runner(subgraphs, "run")
+    inputTensors = tempDpu.get_input_tensors()
+    outputTensors = tempDpu.get_output_tensors()
     shapeIn = tuple(inputTensors[0].dims)
     shapeOut = tuple(outputTensors[0].dims)
     
@@ -179,8 +180,8 @@ if __name__ == '__main__':
     pre_output_size = int(outputTensors[0].get_data_size() / shapeIn[0])
     output_fixpos = outputTensors[0].get_attr("fix_point")
     output_scale = 1 / (2**output_fixpos)
-    job_id = subgraphs.execute_async(inputData, outputData)
-    subgraphs.wait(job_id)
+    job_id = tempDpu.execute_async(inputData, outputData)
+    tempDpu.wait(job_id)
     inputData = outputData
     print('input {}'.format(shapeIn))
     print('output {}'.format(shapeOut))
