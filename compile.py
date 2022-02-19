@@ -89,6 +89,7 @@ if __name__ == '__main__':
     data = 'sample_vai.json'
     torch_model = Model()
     torch_model.eval()
+    print(torch_model)
     t = time.time()
     torch_outputs = evaluate(torch_model, data)
 

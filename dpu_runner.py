@@ -94,13 +94,6 @@ def execute_async(dpu, tensor_buffers_dict):
 
 def run_quartznet(dpu: "Runner", data):
   # Load data
-  data_layer = AudioToTextDataLayer(
-    manifest_filepath=data,
-    sample_rate=16000,
-    labels=vocab,
-    batch_size=1,
-    shuffle=False,
-    drop_last=False)
   preprocessor = AudioToMelSpectrogramPreprocessor(sample_rate=16000) 
   predictions = []
   transcripts = []
@@ -115,42 +108,34 @@ def run_quartznet(dpu: "Runner", data):
   output_scale = 1 / (2**output_fixpos)
   print('input {}'.format(shapeIn))
   print('output {}'.format(shapeOut))
-  for i, test_batch in enumerate(data_layer.data_iterator):
+
       # Get audio [1, n], audio length n, transcript and transcript length
-      audio_signal_e1, a_sig_length_e1, transcript_e1, transcript_len_e1 = test_batch
+  audio_signal_e1, a_sig_length_e1, transcript_e1, transcript_len_e1 = test_batch
 
-      # Get 64d MFCC features and accumulate time
-      processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
-      processed_signal = processed_signal[:,:,:limit]
+  # Get 64d MFCC features and accumulate time
+  processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
+  processed_signal = processed_signal[:,:,:limit]
 
-      # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
-      inputData = processed_signal.unsqueeze(-1)
-      inputData = inputData.detach().cpu().numpy()
-      outputData = [np.empty(shapeOut, dtype=np.int8, order="C")]
+  # Inference and accumulate time. Input shape: [Batch_size, 64, Timesteps]
+  inputData = processed_signal.unsqueeze(-1)
+  inputData = inputData.detach().cpu().numpy()
+  outputData = [np.empty(shapeOut, dtype=np.int8, order="C")]
 
-      job_id = dpu.execute_async(inputData, outputData)
-      dpu.wait(job_id)
+  job_id = dpu.execute_async(inputData, outputData)
+  dpu.wait(job_id)
 
-      t_997 = torch.Tensor(outputData)
-      # t_997 = model(processed_signal)
-      probs = torch.softmax(t_997, **{'dim': 2})
-      print(probs)
-      print(probs.size())
-      ologits = torch.log(probs)
-      alogits = np.asarray(ologits)
-      logits = torch.from_numpy(alogits[0])
-      predictions_e1 = logits.argmax(dim=-1, keepdim=False)
-      transcript_e1 = torch.from_numpy(np.asarray(test_batch[2])) 
-      transcript_len_e1 = torch.from_numpy(np.asarray(test_batch[1])) 
+  t_997 = torch.Tensor(outputData)
+  # t_997 = model(processed_signal)
+  probs = torch.softmax(t_997, **{'dim': 2})
+  ologits = torch.log(probs)
+  alogits = np.asarray(ologits)
+  logits = torch.from_numpy(alogits[0])
+  predictions_e1 = logits.argmax(dim=-1, keepdim=False)
 
-      # Save results
-      predictions.append(torch.reshape(predictions_e1, (1, -1)))
-      transcripts.append(transcript_e1)
-      transcripts_len.append(transcript_len_e1)
+  # Save results
+  predictions.append(torch.reshape(predictions_e1, (1, -1)))
   greedy_hypotheses = post_process_predictions(predictions, vocab)
   print(greedy_hypotheses)
-  references = post_process_transcripts(transcripts, transcripts_len, vocab)
-  wer = word_error_rate(hypotheses=greedy_hypotheses, references=references)
   return greedy_hypotheses  
 
 if __name__ == '__main__':
@@ -184,11 +169,13 @@ if __name__ == '__main__':
   for subgraph in subgraphs:
     if subgraph.has_attr("device") and subgraph.get_attr("device").upper() == "DPU":
       dpu_subgraphs.append(subgraph)
+      print("DPU")
     else:
       cpu_subgraphs.append(subgraph)
+      print("CPU")
   print('Total number of DPU subgraph: {}, DPU: {}, CPU: {}.'.format(len(subgraphs), len(dpu_subgraphs), len(cpu_subgraphs)))
-  
   time_start = time.time()  
+
   time_end = time.time()
   timetotal = time_end - time_start
   print("DPU Time cost: %ds" % timetotal)
