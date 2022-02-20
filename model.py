@@ -454,9 +454,8 @@ class Model(nn.Module):
     self.n_Conv_263.bias.data = self._vars["decoder_decoder_layers_0_bias"].squeeze(-1)
 
   def forward(self, *inputs):
-    audio_signal, = inputs#32,64,256
-    # audio_signal=audio_signal.unsqueeze(-1)
-    t_640 = self.n_Conv_0(audio_signal)#32,64,128
+    melspectrum, = inputs
+    t_640 = self.n_Conv_0(melspectrum)#32,64,128
     t_999 = self.n_Conv_1(t_640)#32,256,128
     t_643 = F.relu(t_999)
     t_644 = self.n_Conv_3(t_643)
@@ -725,60 +724,3 @@ class Model(nn.Module):
     # Vitis ai doesnot allow numeric caculation in graph
     #probs = torch.log(F.softmax(t_997, **{'dim': 2}))
     return t_997
-
-  def compatible_auto_pad(self, input, kernel_spatial_shape, nn_mod, auto_pad=None, **kwargs):
-    input_spatial_shape = input.shape[2:]
-    d = len(input_spatial_shape)
-    strides = nn_mod.stride
-    dilations = nn_mod.dilation
-    output_spatial_shape = [math.ceil(float(l) / float(r)) for l, r in zip(input.shape[2:], strides)]
-    pt_padding = [0] * 2 * d
-    pad_shape = [0] * d
-    for i in range(d):
-      pad_shape[i] = (output_spatial_shape[i] - 1) * strides[i] + ((kernel_spatial_shape[i] - 1) * dilations[i] + 1) - input_spatial_shape[i]
-      mean = pad_shape[i] // 2
-      if auto_pad == b"SAME_UPPER":
-        l, r = pad_shape[i] - mean, mean
-      else:
-        l, r = mean, pad_shape[i] - mean
-      pt_padding.insert(0, r)
-      pt_padding.insert(0, l)
-    return F.pad(input, pt_padding)
-
-@torch.no_grad()
-def test_run_model(inputs=[torch.from_numpy(np.random.randn(*[1, 64, 1]).astype(np.float32))]):
-  model = Model()
-  model.eval()
-  rs = model(*inputs)
-  print(rs)
-  return rs
-
-if __name__ == '__main__':
-  # from onnx_pytorch import code_gen
-  path = "/home/youjun/Documents/Adaptiv/Quartznet/onnx_quartznet.onnx"
-  # code_gen.gen(path, "./")
-
-  import numpy as np
-  import torch
-  torch.set_printoptions(8)
-
-  from model import Model
-  model = Model()
-  model.eval()
-  inp = np.random.randn(32, 64, 256).astype(np.float32)
-  with torch.no_grad():
-    torch_outputs = model(torch.from_numpy(inp))
-
-  print("torch")
-  output = np.argmax(torch_outputs.detach().numpy(),-1)
-  print(output)
-
-  model_origin = Model_origin()
-  model_origin.eval()
-  with torch.no_grad():
-    torch_outputs_origin = model_origin(torch.from_numpy(inp))
-  print("torch_origin")
-  output_origin = np.argmax(torch_outputs_origin.detach().numpy(),-1)
-  print(output_origin)
-  print(output_origin-output)
-  print(output_origin==output)
