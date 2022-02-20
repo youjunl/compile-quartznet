@@ -26,7 +26,6 @@ if __name__ == '__main__':
   print(calib_data)
   calib_data = calib_data[:,:,:limit].unsqueeze(-1)
   inputData = calib_data.detach().cpu().numpy()
-  inputData = np.zeros((1, 64, 800, 1))
   # ''' get a list of subgraphs from the compiled model file '''
   g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/quartznet.xmodel')
   # create the runner
