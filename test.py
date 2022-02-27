@@ -94,10 +94,10 @@ if __name__ == '__main__':
   predictions = []
   torch_model = Model()
   torch_model.eval()
-  calib_data = torch.load('calib.pt').unsqueeze(-1)
+  calib_data = torch.load('calib.pt')
   print("calib data")
   print(calib_data)
-  torch_outputs = torch_model(calib_data)
+  torch_outputs = torch_model(calib_data.unsqueeze(-1))
   probs = torch.softmax(torch_outputs, **{'dim': 2})
   logits = torch.log(probs)[0]
   prediction = logits.argmax(dim=-1, keepdim=False)
@@ -106,7 +106,7 @@ if __name__ == '__main__':
   print(torch_outputs)
   greedy_hypotheses = ctc_decoder(prediction, vocab) 
   print(greedy_hypotheses)
-  test(torch_model, './val/dev_other.json')
+  # test(torch_model, './val/dev_other.json')
   # print(torch_outputs)
   # onnx_model = "../Adaptiv/Quartznet/onnx_quartznet.onnx"
   # ort_outputs = ref(onnx_model, data)
