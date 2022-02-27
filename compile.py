@@ -104,10 +104,36 @@ if __name__ == '__main__':
     quantizer = torch_quantizer('calib', torch_model, (input_data), device=device)
     quant_model = quantizer.quant_model
 
-    quant_model = calibration(quant_model, data, 200)
+    #quant_model = calibration(quant_model, data, 200)
+    '''Calibration'''
+    num = 0
+    data_layer = AudioToTextDataLayer(
+        manifest_filepath=data,
+        sample_rate=16000,
+        labels=vocab,
+        batch_size=1,
+        shuffle=False,
+        drop_last=True)
+    preprocessor = AudioToMelSpectrogramPreprocessor(sample_rate=16000) 
+    predictions = []
+    transcripts = []
+    transcripts_len = []
+    for i, test_batch in enumerate(data_layer.data_iterator):
+      # Get audio [1, n], audio length n, transcript and transcript length
+      audio_signal_e1, a_sig_length_e1, transcript_e1, transcript_len_e1 = test_batch
+      if a_sig_length_e1/16000 < 8:
+        continue
+      if num>200:
+        break
+      else:
+        num = num+1
+      # Get 64d MFCC features and accumulate time
+      processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
+      processed_signal = processed_signal[:,:,:limit]
+      quant_model(processed_signal.unsqueeze(-1))
     quantizer.export_quant_config()
     
-    #calib
+    '''Compile'''
     quantizer = torch_quantizer('test', torch_model, (input_data), device=device)
     calib = 'val/dev_other.json'
     compile_model = quantizer.quant_model
