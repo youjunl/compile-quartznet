@@ -1,6 +1,6 @@
 val
 *.pth
 __pycache__
-*.xmodel
+quartznet.xmodel
 .vscode
 .pkl_memoize_py3

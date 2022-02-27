@@ -24,7 +24,7 @@ vocab = [" ", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
 
 if __name__ == '__main__':
     print('******************************************************************')
-    model_u = Model_u().eval
+    model_u = Model_u().eval()
     calib_data = torch.load('calib.pt')
     print("calib data")
     print(calib_data)
