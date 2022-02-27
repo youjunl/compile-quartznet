@@ -16,7 +16,7 @@ import xir
 # import math
 import time
 print('Finish import')
-limit = 800
+limit = 1000
 vocab = [" ", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
     "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "'"]
 device = torch.device("cpu")
@@ -29,7 +29,7 @@ if __name__ == '__main__':
   print('******************************************************************')
   calib_data = torch.load('calib.pt').to(device)
   print("calib data")
-  print(calib_data)
+  print(calib_data.size())
   calib_data = calib_data[:,:,:limit]
   calib_data = torch.movedim(calib_data, 0, 1)
   calib_data = torch.transpose(calib_data, 0, 2)
