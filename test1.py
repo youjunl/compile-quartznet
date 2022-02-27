@@ -4,7 +4,7 @@ import torch
 from utils.common import post_process_predictions, post_process_transcripts, word_error_rate, to_numpy, ctc_decoder
 from utils.audio_preprocessing import AudioToMelSpectrogramPreprocessor
 from utils.data_layer import AudioToTextDataLayer
-from model import Model
+from test_model import Model_u, Model_d
 from utils.losses import CTCLossNM
 vocab = [" ", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
     "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "'"]
@@ -14,15 +14,15 @@ randinput = torch.from_numpy(np.random.randn(1, 64, 256).astype(np.float32))
 if __name__ == '__main__':
   # data = 'sample_vai.json'
   predictions = []
-  torch_model = Model()
-  torch_model.eval()
+  model_u = Model_u()
+  model_d = Model_d()
   calib_data = torch.load('calib.pt')
-  
-  calib_data = calib_data*1
-  calib_data = calib_data.to(torch.int32).to(torch.float32)
   print("calib data")
   print(calib_data)
-  torch_outputs = torch_model(calib_data.unsqueeze(-1))
+  torch_outputs = model_u(calib_data.unsqueeze(-1))
+  print("model_u output")
+  print(torch_outputs)
+  torch_outputs = model_d(torch_outputs)
   probs = torch.softmax(torch_outputs, **{'dim': 2})
   logits = torch.log(probs)[0]
   prediction = logits.argmax(dim=-1, keepdim=False)

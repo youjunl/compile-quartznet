@@ -36,12 +36,12 @@ if __name__ == '__main__':
 
 
     # ''' get a list of subgraphs from the compiled model file '''
-    g = xir.Graph.deserialize('/home/petalinux/notebooks/compile-quartznet/model_d.xmodel')
+    g = xir.Graph.deserialize('model_d.xmodel')
     # create the runner
     runner = vitis_ai_library.GraphRunner.create_graph_runner(g)
     predictions = []
     # get input and output tensor buffer, fill input
-    input_tensor_buffers = inputData
+    input_tensor_buffers = runner.get_inputs()
     output_tensor_buffers = runner.get_outputs()
     time_start = time.time()
     v = runner.execute_async(input_tensor_buffers, output_tensor_buffers)
