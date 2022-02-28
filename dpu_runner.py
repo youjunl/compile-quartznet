@@ -49,7 +49,7 @@ if __name__ == '__main__':
   height = input_ndim[2]
   input_fixpos = input_tensor_buffers[0].get_tensor().get_attr("fix_point")
 
-  inputData = inputData*5
+  inputData = inputData*2**input_fixpos
 
   input_Data = np.asarray(input_tensor_buffers[0])
   print(inputData)

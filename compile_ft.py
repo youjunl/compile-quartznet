@@ -81,15 +81,14 @@ def evaluate(model, val_data):
     processed_signal = preprocessor.get_features(audio_signal_e1, a_sig_length_e1)
     processed_signal = processed_signal[:,:,:limit]
     t_997 = model(processed_signal.unsqueeze(-1))
-    # t_997 = model(processed_signal)
     probs = torch.softmax(t_997, **{'dim': 2})
     ologits = torch.log(probs)
     logits = ologits[0]
     predictions_e1 = logits.argmax(dim=-1, keepdim=False)
     transcript_e1 = torch.from_numpy(np.asarray(test_batch[2])) 
     transcript_len_e1 = torch.from_numpy(np.asarray(test_batch[1])) 
-    #loss_iter = loss_fn(logits, transcript_e1, a_sig_length_e1, transcript_len_e1)
-    #Loss += loss_iter
+    loss_iter = loss_fn._loss(logits, transcript_e1, a_sig_length_e1, transcript_len_e1)
+    Loss += loss_iter
     total += 1
     # Save results
     predictions.append(torch.reshape(predictions_e1, (1, -1)))
