@@ -22,7 +22,7 @@ vocab = [" ", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
 device = torch.device("cpu")
 def preprocess_frame(input, fixpos):
   fix_scale = 2**fixpos
-  output = fix_scale * input
+  output = 5 * input
   return output
 
 if __name__ == '__main__':
@@ -49,7 +49,7 @@ if __name__ == '__main__':
   height = input_ndim[2]
   input_fixpos = input_tensor_buffers[0].get_tensor().get_attr("fix_point")
 
-  inputData = preprocess_frame(inputData, input_fixpos)
+  inputData = inputData*5
 
   input_Data = np.asarray(input_tensor_buffers[0])
   print(inputData)
